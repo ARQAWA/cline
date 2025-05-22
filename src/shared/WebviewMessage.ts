@@ -26,6 +26,7 @@ export interface WebviewMessage {
 		| "grpc_request"
 		| "grpc_request_cancel"
 		| "toggleWorkflow"
+		| "togglePlanActMode"
 		| "executeQuickWin"
 
 	text?: string
