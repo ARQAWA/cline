@@ -7,6 +7,10 @@ import { ApiHandlerOptions, geminiDefaultModelId, GeminiModelId, geminiModels, M
 import { convertAnthropicMessageToGemini } from "../transform/gemini-format"
 import { ApiStream } from "../transform/stream"
 import { telemetryService } from "@services/posthog/telemetry/TelemetryService"
+import * as fs from 'fs';
+import * as path from 'path';
+import os from "os";
+import vscode from "vscode";
 
 // Define a default TTL for the cache (e.g., 15 minutes in seconds)
 const DEFAULT_CACHE_TTL_SECONDS = 900
@@ -93,14 +97,42 @@ export class GeminiHandler implements ApiHandler {
 			...{ systemInstruction: systemPrompt },
 			// Set temperature (default to 0)
 			temperature: 0,
+			topP: 0.8,
+			topK: 40,
 		}
 
 		// Add thinking config if the model supports it
 		if (info.thinkingConfig?.outputPrice !== undefined && maxBudget > 0) {
 			requestConfig.thinkingConfig = {
+				includeThoughts: true,
 				thinkingBudget: thinkingBudget,
 			}
 		}
+
+		let modelName = modelId;
+		if (modelName === "gemini-2.5-flash-preview-05-20:no-thinking") {
+			modelName = "gemini-2.5-flash-preview-05-20";
+			requestConfig.thinkingConfig = {
+				includeThoughts: true,
+				thinkingBudget: 0,
+			}
+		}
+
+		const CWD = vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) ?? path.join(os.homedir(), "Desktop")
+		const logDir = path.join(CWD, '.ass', 'logs');
+		console.log(logDir)
+		if (!fs.existsSync(logDir)) {
+			fs.mkdirSync(logDir, { recursive: true });
+		}
+
+		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+		const logFilePath = path.join(logDir, `payload_log_${timestamp}.json`);
+
+		fs.writeFileSync(logFilePath, JSON.stringify({
+			model: modelName,
+			contents: contents,
+			config: {...requestConfig,},
+		}, null, 2));
 
 		// Generate content using the configured parameters
 		const sdkCallStartTime = Date.now()
@@ -115,7 +147,7 @@ export class GeminiHandler implements ApiHandler {
 
 		try {
 			const result = await this.client.models.generateContentStream({
-				model: modelId,
+				model: modelName,
 				contents: contents,
 				config: {
 					...requestConfig,
