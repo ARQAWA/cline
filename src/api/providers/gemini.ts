@@ -175,6 +175,7 @@ export class GeminiHandler implements ApiHandler {
 			const logFilePath = path.join(logDir, `payload_log_${timestamp}.json`);
 
 			fs.writeFileSync(logFilePath, JSON.stringify({
+				usageMetadata: lastUsageMetadata,
 				responseText: responseText,
 				model: modelName,
 				contents: contents,
