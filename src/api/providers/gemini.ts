@@ -104,7 +104,7 @@ export class GeminiHandler implements ApiHandler {
 		// Add thinking config if the model supports it
 		if (info.thinkingConfig?.outputPrice !== undefined && maxBudget > 0) {
 			requestConfig.thinkingConfig = {
-				includeThoughts: true,
+				includeThoughts: false,
 				thinkingBudget: thinkingBudget,
 			}
 		}
@@ -113,7 +113,7 @@ export class GeminiHandler implements ApiHandler {
 		if (modelName === "gemini-2.5-flash-preview-05-20:no-thinking") {
 			modelName = "gemini-2.5-flash-preview-05-20";
 			requestConfig.thinkingConfig = {
-				includeThoughts: true,
+				includeThoughts: false,
 				thinkingBudget: 0,
 			}
 		}
