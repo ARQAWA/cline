@@ -12,21 +12,16 @@ import * as vscode from "vscode"
 import { Logger } from "@services/logging/Logger"
 import { ApiHandler, buildApiHandler } from "@api/index"
 import { AnthropicHandler } from "@api/providers/anthropic"
-import { ClineHandler } from "@api/providers/cline"
 import { OpenRouterHandler } from "@api/providers/openrouter"
 import { ApiStream } from "@api/transform/stream"
 import CheckpointTracker from "@integrations/checkpoints/CheckpointTracker"
 import { DIFF_VIEW_URI_SCHEME, DiffViewProvider } from "@integrations/editor/DiffViewProvider"
 import { formatContentBlockToMarkdown } from "@integrations/misc/export-markdown"
-import { extractTextFromFile } from "@integrations/misc/extract-text"
 import { showSystemNotification } from "@integrations/notifications"
 import { TerminalManager } from "@integrations/terminal/TerminalManager"
 import { BrowserSession } from "@services/browser/BrowserSession"
 import { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
-import { listFiles } from "@services/glob/list-files"
-import { regexSearchFiles } from "@services/ripgrep"
 import { telemetryService } from "@services/posthog/telemetry/TelemetryService"
-import { parseSourceCodeForDefinitionsTopLevel } from "@services/tree-sitter"
 import { ApiConfiguration } from "@shared/api"
 import { findLast, findLastIndex, parsePartialArrayString } from "@shared/array"
 import { AutoApprovalSettings } from "@shared/AutoApprovalSettings"
@@ -1500,14 +1495,6 @@ export class Task {
 	shouldAutoApproveTool(toolName: ToolUseName): boolean | [boolean, boolean] {
 		if (this.autoApprovalSettings.enabled) {
 			switch (toolName) {
-				case "read_file":
-				case "list_files":
-				case "list_code_definition_names":
-				case "search_files":
-					return [
-						this.autoApprovalSettings.actions.readFiles,
-						this.autoApprovalSettings.actions.readFilesExternally ?? false,
-					]
 				case "new_rule":
 				case "write_to_file":
 				case "replace_in_file":
@@ -1687,7 +1674,7 @@ export class Task {
 			yield firstChunk.value
 			this.isWaitingForFirstChunk = false
 		} catch (error) {
-			const isOpenRouter = this.api instanceof OpenRouterHandler || this.api instanceof ClineHandler
+			const isOpenRouter = this.api instanceof OpenRouterHandler
 			const isAnthropic = this.api instanceof AnthropicHandler
 			const isOpenRouterContextWindowError = checkIsOpenRouterContextWindowError(error) && isOpenRouter
 			const isAnthropicContextWindowError = checkIsAnthropicContextWindowError(error) && isAnthropic
@@ -1903,11 +1890,7 @@ export class Task {
 					// Remove end substrings of <thinking or </thinking (below xml parsing is only for opening tags)
 					// (this is done with the xml parsing below now, but keeping here for reference)
 					// content = content.replace(/<\/?t(?:h(?:i(?:n(?:k(?:i(?:n(?:g)?)?)?)?)?)?)?$/, "")
-					// Remove all instances of <thinking> (with optional line break after) and </thinking> (with optional line break before)
-					// - Needs to be separate since we dont want to remove the line break before the first tag
-					// - Needs to happen before the xml parsing below
-					content = content.replace(/<thinking>\s?/g, "")
-					content = content.replace(/\s?<\/thinking>/g, "")
+					content = content.replace(/<thinking>.*?<\/thinking>/gs, "");
 
 					// Remove partial XML tag at the very end of the content (for tool use and thinking tags)
 					// (prevents scrollview from jumping when tags are automatically removed)
@@ -1954,19 +1937,9 @@ export class Task {
 					switch (block.name) {
 						case "execute_command":
 							return `[${block.name} for '${block.params.command}']`
-						case "read_file":
-							return `[${block.name} for '${block.params.path}']`
 						case "write_to_file":
 							return `[${block.name} for '${block.params.path}']`
 						case "replace_in_file":
-							return `[${block.name} for '${block.params.path}']`
-						case "search_files":
-							return `[${block.name} for '${block.params.regex}'${
-								block.params.file_pattern ? ` in '${block.params.file_pattern}'` : ""
-							}]`
-						case "list_files":
-							return `[${block.name} for '${block.params.path}']`
-						case "list_code_definition_names":
 							return `[${block.name} for '${block.params.path}']`
 						case "browser_action":
 							return `[${block.name} for '${block.params.action}']`
@@ -2487,322 +2460,6 @@ export class Task {
 							await handleError("writing file", error)
 							await this.diffViewProvider.revertChanges()
 							await this.diffViewProvider.reset()
-							await this.saveCheckpoint()
-							break
-						}
-					}
-					case "read_file": {
-						const relPath: string | undefined = block.params.path
-						const sharedMessageProps: ClineSayTool = {
-							tool: "readFile",
-							path: getReadablePath(cwd, removeClosingTag("path", relPath)),
-						}
-						try {
-							if (block.partial) {
-								const partialMessage = JSON.stringify({
-									...sharedMessageProps,
-									content: undefined,
-									operationIsLocatedInWorkspace: isLocatedInWorkspace(relPath),
-								} satisfies ClineSayTool)
-								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
-									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
-									await this.say("tool", partialMessage, undefined, undefined, block.partial)
-								} else {
-									this.removeLastPartialMessageIfExistsWithType("say", "tool")
-									await this.ask("tool", partialMessage, block.partial).catch(() => {})
-								}
-								break
-							} else {
-								if (!relPath) {
-									this.consecutiveMistakeCount++
-									pushToolResult(await this.sayAndCreateMissingParamError("read_file", "path"))
-									await this.saveCheckpoint()
-									break
-								}
-
-								const accessAllowed = this.clineIgnoreController.validateAccess(relPath)
-								if (!accessAllowed) {
-									await this.say("clineignore_error", relPath)
-									pushToolResult(formatResponse.toolError(formatResponse.clineIgnoreError(relPath)))
-									await this.saveCheckpoint()
-									break
-								}
-
-								this.consecutiveMistakeCount = 0
-								const absolutePath = path.resolve(cwd, relPath)
-								const completeMessage = JSON.stringify({
-									...sharedMessageProps,
-									content: absolutePath,
-									operationIsLocatedInWorkspace: isLocatedInWorkspace(relPath),
-								} satisfies ClineSayTool)
-								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
-									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
-									await this.say("tool", completeMessage, undefined, undefined, false) // need to be sending partialValue bool, since undefined has its own purpose in that the message is treated neither as a partial or completion of a partial, but as a single complete message
-									this.consecutiveAutoApprovedRequestsCount++
-									telemetryService.captureToolUsage(this.taskId, block.name, true, true)
-								} else {
-									showNotificationForApprovalIfAutoApprovalEnabled(
-										`Cline wants to read ${path.basename(absolutePath)}`,
-									)
-									this.removeLastPartialMessageIfExistsWithType("say", "tool")
-									const didApprove = await askApproval("tool", completeMessage)
-									if (!didApprove) {
-										await this.saveCheckpoint()
-										telemetryService.captureToolUsage(this.taskId, block.name, false, false)
-										break
-									}
-									telemetryService.captureToolUsage(this.taskId, block.name, false, true)
-								}
-								// now execute the tool like normal
-								const content = await extractTextFromFile(absolutePath)
-
-								// Track file read operation
-								await this.fileContextTracker.trackFileContext(relPath, "read_tool")
-
-								pushToolResult(content)
-								await this.saveCheckpoint()
-								break
-							}
-						} catch (error) {
-							await handleError("reading file", error)
-							await this.saveCheckpoint()
-							break
-						}
-					}
-					case "list_files": {
-						const isClaude4ModelFamily = await this.isClaude4ModelFamily()
-						const relDirPath: string | undefined = block.params.path
-						const recursiveRaw: string | undefined = block.params.recursive
-						const recursive = recursiveRaw?.toLowerCase() === "true"
-						const sharedMessageProps: ClineSayTool = {
-							tool: !recursive ? "listFilesTopLevel" : "listFilesRecursive",
-							path: getReadablePath(cwd, removeClosingTag("path", relDirPath)),
-						}
-						try {
-							if (block.partial) {
-								const partialMessage = JSON.stringify({
-									...sharedMessageProps,
-									content: "",
-									operationIsLocatedInWorkspace: isLocatedInWorkspace(block.params.path),
-								} satisfies ClineSayTool)
-								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
-									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
-									await this.say("tool", partialMessage, undefined, undefined, block.partial)
-								} else {
-									this.removeLastPartialMessageIfExistsWithType("say", "tool")
-									await this.ask("tool", partialMessage, block.partial).catch(() => {})
-								}
-								break
-							} else {
-								if (!relDirPath) {
-									this.consecutiveMistakeCount++
-									pushToolResult(
-										await this.sayAndCreateMissingParamError("list_files", "path"),
-										isClaude4ModelFamily,
-									)
-									await this.saveCheckpoint()
-									break
-								}
-								this.consecutiveMistakeCount = 0
-
-								const absolutePath = path.resolve(cwd, relDirPath)
-
-								const [files, didHitLimit] = await listFiles(absolutePath, recursive, 200)
-
-								const result = formatResponse.formatFilesList(
-									absolutePath,
-									files,
-									didHitLimit,
-									this.clineIgnoreController,
-								)
-								const completeMessage = JSON.stringify({
-									...sharedMessageProps,
-									content: result,
-									operationIsLocatedInWorkspace: isLocatedInWorkspace(block.params.path),
-								} satisfies ClineSayTool)
-								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
-									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
-									await this.say("tool", completeMessage, undefined, undefined, false)
-									this.consecutiveAutoApprovedRequestsCount++
-									telemetryService.captureToolUsage(this.taskId, block.name, true, true)
-								} else {
-									showNotificationForApprovalIfAutoApprovalEnabled(
-										`Cline wants to view directory ${path.basename(absolutePath)}/`,
-									)
-									this.removeLastPartialMessageIfExistsWithType("say", "tool")
-									const didApprove = await askApproval("tool", completeMessage)
-									if (!didApprove) {
-										telemetryService.captureToolUsage(this.taskId, block.name, false, false)
-										await this.saveCheckpoint()
-										break
-									}
-									telemetryService.captureToolUsage(this.taskId, block.name, false, true)
-								}
-								pushToolResult(result, isClaude4ModelFamily)
-								await this.saveCheckpoint()
-								break
-							}
-						} catch (error) {
-							await handleError("listing files", error, isClaude4ModelFamily)
-							await this.saveCheckpoint()
-							break
-						}
-					}
-					case "list_code_definition_names": {
-						const relDirPath: string | undefined = block.params.path
-						const sharedMessageProps: ClineSayTool = {
-							tool: "listCodeDefinitionNames",
-							path: getReadablePath(cwd, removeClosingTag("path", relDirPath)),
-						}
-						try {
-							if (block.partial) {
-								const partialMessage = JSON.stringify({
-									...sharedMessageProps,
-									content: "",
-									operationIsLocatedInWorkspace: isLocatedInWorkspace(block.params.path),
-								} satisfies ClineSayTool)
-								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
-									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
-									await this.say("tool", partialMessage, undefined, undefined, block.partial)
-								} else {
-									this.removeLastPartialMessageIfExistsWithType("say", "tool")
-									await this.ask("tool", partialMessage, block.partial).catch(() => {})
-								}
-								break
-							} else {
-								if (!relDirPath) {
-									this.consecutiveMistakeCount++
-									pushToolResult(await this.sayAndCreateMissingParamError("list_code_definition_names", "path"))
-									await this.saveCheckpoint()
-									break
-								}
-
-								this.consecutiveMistakeCount = 0
-
-								const absolutePath = path.resolve(cwd, relDirPath)
-								const result = await parseSourceCodeForDefinitionsTopLevel(
-									absolutePath,
-									this.clineIgnoreController,
-								)
-
-								const completeMessage = JSON.stringify({
-									...sharedMessageProps,
-									content: result,
-									operationIsLocatedInWorkspace: isLocatedInWorkspace(block.params.path),
-								} satisfies ClineSayTool)
-								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
-									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
-									await this.say("tool", completeMessage, undefined, undefined, false)
-									this.consecutiveAutoApprovedRequestsCount++
-									telemetryService.captureToolUsage(this.taskId, block.name, true, true)
-								} else {
-									showNotificationForApprovalIfAutoApprovalEnabled(
-										`Cline wants to view source code definitions in ${path.basename(absolutePath)}/`,
-									)
-									this.removeLastPartialMessageIfExistsWithType("say", "tool")
-									const didApprove = await askApproval("tool", completeMessage)
-									if (!didApprove) {
-										telemetryService.captureToolUsage(this.taskId, block.name, false, false)
-										await this.saveCheckpoint()
-										break
-									}
-									telemetryService.captureToolUsage(this.taskId, block.name, false, true)
-								}
-								pushToolResult(result)
-								await this.saveCheckpoint()
-								break
-							}
-						} catch (error) {
-							await handleError("parsing source code definitions", error)
-							await this.saveCheckpoint()
-							break
-						}
-					}
-					case "search_files": {
-						const isClaude4ModelFamily = await this.isClaude4ModelFamily()
-						const relDirPath: string | undefined = block.params.path
-						const regex: string | undefined = block.params.regex
-						const filePattern: string | undefined = block.params.file_pattern
-						const sharedMessageProps: ClineSayTool = {
-							tool: "searchFiles",
-							path: getReadablePath(cwd, removeClosingTag("path", relDirPath)),
-							regex: removeClosingTag("regex", regex),
-							filePattern: removeClosingTag("file_pattern", filePattern),
-						}
-						try {
-							if (block.partial) {
-								const partialMessage = JSON.stringify({
-									...sharedMessageProps,
-									content: "",
-									operationIsLocatedInWorkspace: isLocatedInWorkspace(block.params.path),
-								} satisfies ClineSayTool)
-								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
-									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
-									await this.say("tool", partialMessage, undefined, undefined, block.partial)
-								} else {
-									this.removeLastPartialMessageIfExistsWithType("say", "tool")
-									await this.ask("tool", partialMessage, block.partial).catch(() => {})
-								}
-								break
-							} else {
-								if (!relDirPath) {
-									this.consecutiveMistakeCount++
-									pushToolResult(
-										await this.sayAndCreateMissingParamError("search_files", "path"),
-										isClaude4ModelFamily,
-									)
-									await this.saveCheckpoint()
-									break
-								}
-								if (!regex) {
-									this.consecutiveMistakeCount++
-									pushToolResult(
-										await this.sayAndCreateMissingParamError("search_files", "regex"),
-										isClaude4ModelFamily,
-									)
-									await this.saveCheckpoint()
-									break
-								}
-								this.consecutiveMistakeCount = 0
-
-								const absolutePath = path.resolve(cwd, relDirPath)
-								const results = await regexSearchFiles(
-									cwd,
-									absolutePath,
-									regex,
-									filePattern,
-									this.clineIgnoreController,
-								)
-
-								const completeMessage = JSON.stringify({
-									...sharedMessageProps,
-									content: results,
-									operationIsLocatedInWorkspace: isLocatedInWorkspace(block.params.path),
-								} satisfies ClineSayTool)
-								if (this.shouldAutoApproveToolWithPath(block.name, block.params.path)) {
-									this.removeLastPartialMessageIfExistsWithType("ask", "tool")
-									await this.say("tool", completeMessage, undefined, undefined, false)
-									this.consecutiveAutoApprovedRequestsCount++
-									telemetryService.captureToolUsage(this.taskId, block.name, true, true)
-								} else {
-									showNotificationForApprovalIfAutoApprovalEnabled(
-										`Cline wants to search files in ${path.basename(absolutePath)}/`,
-									)
-									this.removeLastPartialMessageIfExistsWithType("say", "tool")
-									const didApprove = await askApproval("tool", completeMessage)
-									if (!didApprove) {
-										telemetryService.captureToolUsage(this.taskId, block.name, false, false)
-										await this.saveCheckpoint()
-										break
-									}
-									telemetryService.captureToolUsage(this.taskId, block.name, false, true)
-								}
-								pushToolResult(results, isClaude4ModelFamily)
-								await this.saveCheckpoint()
-								break
-							}
-						} catch (error) {
-							await handleError("searching files", error, isClaude4ModelFamily)
 							await this.saveCheckpoint()
 							break
 						}

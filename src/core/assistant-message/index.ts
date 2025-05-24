@@ -10,12 +10,8 @@ export interface TextContent {
 
 export const toolUseNames = [
 	"execute_command",
-	"read_file",
 	"write_to_file",
 	"replace_in_file",
-	"search_files",
-	"list_files",
-	"list_code_definition_names",
 	"browser_action",
 	"use_mcp_tool",
 	"access_mcp_resource",

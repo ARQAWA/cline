@@ -118,22 +118,6 @@ export class GeminiHandler implements ApiHandler {
 			}
 		}
 
-		const CWD = vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) ?? path.join(os.homedir(), "Desktop")
-		const logDir = path.join(CWD, '.ass', 'logs');
-		console.log(logDir)
-		if (!fs.existsSync(logDir)) {
-			fs.mkdirSync(logDir, { recursive: true });
-		}
-
-		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-		const logFilePath = path.join(logDir, `payload_log_${timestamp}.json`);
-
-		fs.writeFileSync(logFilePath, JSON.stringify({
-			model: modelName,
-			contents: contents,
-			config: {...requestConfig,},
-		}, null, 2));
-
 		// Generate content using the configured parameters
 		const sdkCallStartTime = Date.now()
 		let sdkFirstChunkTime: number | undefined
@@ -154,6 +138,7 @@ export class GeminiHandler implements ApiHandler {
 				},
 			})
 
+			let responseText = "";
 			let isFirstSdkChunk = true
 			for await (const chunk of result) {
 				if (isFirstSdkChunk) {
@@ -163,6 +148,7 @@ export class GeminiHandler implements ApiHandler {
 				}
 
 				if (chunk.text) {
+					responseText += chunk.text
 					yield {
 						type: "text",
 						text: chunk.text,
@@ -177,6 +163,23 @@ export class GeminiHandler implements ApiHandler {
 				}
 			}
 			apiSuccess = true
+
+			const CWD = vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) ?? path.join(os.homedir(), "Desktop")
+			const logDir = path.join(CWD, '.ass', 'logs');
+			console.log(logDir)
+			if (!fs.existsSync(logDir)) {
+				fs.mkdirSync(logDir, { recursive: true });
+			}
+
+			const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+			const logFilePath = path.join(logDir, `payload_log_${timestamp}.json`);
+
+			fs.writeFileSync(logFilePath, JSON.stringify({
+				responseText: responseText,
+				model: modelName,
+				contents: contents,
+				config: {...requestConfig,},
+			}, null, 2));
 
 			if (lastUsageMetadata) {
 				const totalCost = this.calculateCost({

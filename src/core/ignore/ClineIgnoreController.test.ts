@@ -99,23 +99,6 @@ describe("ClineIgnoreController", () => {
 			results[2].should.be.false() // script.tmp
 		})
 
-		// ToDo: handle negation patterns successfully
-
-		// it("should handle negation patterns", async () => {
-		// 	await fs.writeFile(
-		// 		path.join(tempDir, ".clineignore"),
-		// 		[
-		// 			"temp/*", // Ignore everything in temp
-		// 			"!temp/allowed/*", // But allow files in temp/allowed
-		// 			"docs/**/*.md", // Ignore all markdown files in docs
-		// 			"!docs/README.md", // Except README.md
-		// 			"!docs/CONTRIBUTING.md", // And CONTRIBUTING.md
-		// 			"assets/", // Ignore all assets
-		// 			"!assets/public/", // Except public assets
-		// 			"!assets/public/*.png", // Specifically allow PNGs in public assets
-		// 		].join("\n"),
-		// 	)
-
 		// 	controller = new ClineIgnoreController(tempDir)
 
 		// 	const results = [
@@ -124,29 +107,11 @@ describe("ClineIgnoreController", () => {
 		// 		controller.validateAccess("temp/allowed/file.txt"), // Should be true (negated)
 		// 		controller.validateAccess("temp/allowed/nested/file.txt"), // Should be true (negated with nested)
 
-		// 		// Multiple negations in same path
-		// 		controller.validateAccess("docs/guide.md"), // Should be false (matches docs/**/*.md)
-		// 		controller.validateAccess("docs/README.md"), // Should be true (negated)
-		// 		controller.validateAccess("docs/CONTRIBUTING.md"), // Should be true (negated)
-		// 		controller.validateAccess("docs/api/guide.md"), // Should be false (nested markdown)
-
 		// 		// Nested negations
 		// 		controller.validateAccess("assets/logo.png"), // Should be false (in assets/)
 		// 		controller.validateAccess("assets/public/logo.png"), // Should be true (negated and matches *.png)
 		// 		controller.validateAccess("assets/public/data.json"), // Should be true (in negated public/)
 		// 	]
-
-		// 	results[0].should.be.false() // temp/file.txt
-		// 	results[1].should.be.true() // temp/allowed/file.txt
-		// 	results[2].should.be.true() // temp/allowed/nested/file.txt
-		// 	results[3].should.be.false() // docs/guide.md
-		// 	results[4].should.be.true() // docs/README.md
-		// 	results[5].should.be.true() // docs/CONTRIBUTING.md
-		// 	results[6].should.be.false() // docs/api/guide.md
-		// 	results[7].should.be.false() // assets/logo.png
-		// 	results[8].should.be.true() // assets/public/logo.png
-		// 	results[9].should.be.true() // assets/public/data.json
-		// })
 
 		it("should handle comments in .clineignore", async () => {
 			// Create a new .clineignore with comments

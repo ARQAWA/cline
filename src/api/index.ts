@@ -18,7 +18,6 @@ import { QwenHandler } from "./providers/qwen"
 import { MistralHandler } from "./providers/mistral"
 import { DoubaoHandler } from "./providers/doubao"
 import { VsCodeLmHandler } from "./providers/vscode-lm"
-import { ClineHandler } from "./providers/cline"
 import { LiteLlmHandler } from "./providers/litellm"
 import { FireworksHandler } from "./providers/fireworks"
 import { AskSageHandler } from "./providers/asksage"
@@ -73,8 +72,6 @@ export function buildApiHandler(configuration: ApiConfiguration): ApiHandler {
 			return new MistralHandler(options)
 		case "vscode-lm":
 			return new VsCodeLmHandler(options)
-		case "cline":
-			return new ClineHandler(options)
 		case "litellm":
 			return new LiteLlmHandler(options)
 		case "nebius":
