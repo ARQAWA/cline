@@ -7,14 +7,8 @@ import { ApiHandlerOptions, geminiDefaultModelId, GeminiModelId, geminiModels, M
 import { convertAnthropicMessageToGemini } from "../transform/gemini-format"
 import { ApiStream } from "../transform/stream"
 import { telemetryService } from "@services/posthog/telemetry/TelemetryService"
-import * as fs from 'fs';
-import * as path from 'path';
-import os from "os";
-import vscode from "vscode";
 
 // Define a default TTL for the cache (e.g., 15 minutes in seconds)
-const DEFAULT_CACHE_TTL_SECONDS = 900
-
 interface GeminiHandlerOptions extends ApiHandlerOptions {
 	isVertex?: boolean
 }
@@ -163,24 +157,6 @@ export class GeminiHandler implements ApiHandler {
 				}
 			}
 			apiSuccess = true
-
-			const CWD = vscode.workspace.workspaceFolders?.map((folder) => folder.uri.fsPath).at(0) ?? path.join(os.homedir(), "Desktop")
-			const logDir = path.join(CWD, '.ass', 'logs');
-			console.log(logDir)
-			if (!fs.existsSync(logDir)) {
-				fs.mkdirSync(logDir, { recursive: true });
-			}
-
-			const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-			const logFilePath = path.join(logDir, `payload_log_${timestamp}.json`);
-
-			fs.writeFileSync(logFilePath, JSON.stringify({
-				usageMetadata: lastUsageMetadata,
-				responseText: responseText,
-				model: modelName,
-				contents: contents,
-				config: {...requestConfig,},
-			}, null, 2));
 
 			if (lastUsageMetadata) {
 				const totalCost = this.calculateCost({
