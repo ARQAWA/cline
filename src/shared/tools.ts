@@ -80,10 +80,10 @@ export interface ExecuteCommandToolUse extends ToolUse {
 	params: Partial<Pick<Record<ToolParamName, string>, "command" | "cwd">>
 }
 
-export interface ReadFileToolUse extends ToolUse {
-	name: "read_file"
-	params: Partial<Pick<Record<ToolParamName, string>, "args" | "path" | "start_line" | "end_line">>
-}
+// export interface ReadFileToolUse extends ToolUse {
+// 	name: "read_file"
+// 	params: Partial<Pick<Record<ToolParamName, string>, "args" | "path" | "start_line" | "end_line">>
+// }
 
 export interface FetchInstructionsToolUse extends ToolUse {
 	name: "fetch_instructions"
@@ -100,25 +100,25 @@ export interface InsertCodeBlockToolUse extends ToolUse {
 	params: Partial<Pick<Record<ToolParamName, string>, "path" | "line" | "content">>
 }
 
-export interface CodebaseSearchToolUse extends ToolUse {
-	name: "codebase_search"
-	params: Partial<Pick<Record<ToolParamName, string>, "query" | "path">>
-}
+// export interface CodebaseSearchToolUse extends ToolUse {
+// 	name: "codebase_search"
+// 	params: Partial<Pick<Record<ToolParamName, string>, "query" | "path">>
+// }
 
-export interface SearchFilesToolUse extends ToolUse {
-	name: "search_files"
-	params: Partial<Pick<Record<ToolParamName, string>, "path" | "regex" | "file_pattern">>
-}
+// export interface SearchFilesToolUse extends ToolUse {
+// 	name: "search_files"
+// 	params: Partial<Pick<Record<ToolParamName, string>, "path" | "regex" | "file_pattern">>
+// }
 
-export interface ListFilesToolUse extends ToolUse {
-	name: "list_files"
-	params: Partial<Pick<Record<ToolParamName, string>, "path" | "recursive">>
-}
+// export interface ListFilesToolUse extends ToolUse {
+// 	name: "list_files"
+// 	params: Partial<Pick<Record<ToolParamName, string>, "path" | "recursive">>
+// }
 
-export interface ListCodeDefinitionNamesToolUse extends ToolUse {
-	name: "list_code_definition_names"
-	params: Partial<Pick<Record<ToolParamName, string>, "path">>
-}
+// export interface ListCodeDefinitionNamesToolUse extends ToolUse {
+// 	name: "list_code_definition_names"
+// 	params: Partial<Pick<Record<ToolParamName, string>, "path">>
+// }
 
 export interface BrowserActionToolUse extends ToolUse {
 	name: "browser_action"
@@ -169,13 +169,13 @@ export type ToolGroupConfig = {
 
 export const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
 	execute_command: "run commands",
-	read_file: "read files",
+	// read_file: "read files",
 	fetch_instructions: "fetch instructions",
 	write_to_file: "write files",
 	apply_diff: "apply changes",
-	search_files: "search files",
-	list_files: "list files",
-	list_code_definition_names: "list definitions",
+	// search_files: "search files",
+	// list_files: "list files",
+	// list_code_definition_names: "list definitions",
 	browser_action: "use a browser",
 	use_mcp_tool: "use mcp tools",
 	access_mcp_resource: "access mcp resources",
@@ -185,7 +185,7 @@ export const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
 	new_task: "create new task",
 	insert_content: "insert content",
 	search_and_replace: "search and replace",
-	codebase_search: "codebase search",
+	// codebase_search: "codebase search",
 } as const
 
 // Define available tool groups.

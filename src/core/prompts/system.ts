@@ -12,6 +12,10 @@ import { CodeIndexManager } from "../../services/code-index/manager"
 
 import { PromptVariables, loadSystemPromptFile } from "./sections/custom-system-prompt"
 
+import { execa } from 'execa';
+import * as fs from 'fs';
+import * as path from 'path';
+
 import { getToolDescriptionsForMode } from "./tools"
 import {
 	getRulesSection,
@@ -65,6 +69,9 @@ async function generatePrompt(
 
 	const codeIndexManager = CodeIndexManager.getInstance(context)
 
+	await execa('python3', [`${cwd}/.ass/codegen.py`, cwd]);
+	const CODEBASE_XML = fs.readFileSync(path.join(cwd.toPosix(), 'codebase.xml'), 'utf8');
+
 	const basePrompt = `${roleDefinition}
 
 ${markdownFormattingSection()}
@@ -99,10 +106,13 @@ ${getSystemInfoSection(cwd)}
 
 ${getObjectiveSection(codeIndexManager, experiments)}
 
-${await addCustomInstructions(baseInstructions, globalCustomInstructions || "", cwd, mode, { language: language ?? formatLanguage(vscode.env.language), rooIgnoreInstructions })}`
+${CODEBASE_XML}`.trim()
 
+	fs.writeFileSync(path.join(cwd, '__prompt.txt'), basePrompt);
 	return basePrompt
 }
+
+//${await addCustomInstructions(baseInstructions, globalCustomInstructions || "", cwd, mode, { language: language ?? formatLanguage(vscode.env.language), rooIgnoreInstructions })}
 
 export const SYSTEM_PROMPT = async (
 	context: vscode.ExtensionContext,
