@@ -549,25 +549,25 @@ export function parseAssistantMessageV3(assistantMessage: string): AssistantMess
 				currentInvokeName = assistantMessage.slice(currentCharIndex + 1, nameEndPos)
 				i = nameEndPos + isInvokeEnd.length - 1 // Skip to after the '">
 
-				// If this is an LS invoke, create a list_files tool
-				if (currentInvokeName === "LS") {
-					currentToolUse = {
-						type: "tool_use",
-						name: "list_files",
-						params: {},
-						partial: true,
-					}
-				}
+				// // If this is an LS invoke, create a list_files tool
+				// if (currentInvokeName === "LS") {
+				// 	currentToolUse = {
+				// 		type: "tool_use",
+				// 		name: "list_files",
+				// 		params: {},
+				// 		partial: true,
+				// 	}
+				// }
 
-				// If this is a Grep invoke, create a search_files tool
-				if (currentInvokeName === "Grep") {
-					currentToolUse = {
-						type: "tool_use",
-						name: "search_files",
-						params: {},
-						partial: true,
-					}
-				}
+				// // If this is a Grep invoke, create a search_files tool
+				// if (currentInvokeName === "Grep") {
+				// 	currentToolUse = {
+				// 		type: "tool_use",
+				// 		name: "search_files",
+				// 		params: {},
+				// 		partial: true,
+				// 	}
+				// }
 
 				if (currentInvokeName === "Bash") {
 					currentToolUse = {
@@ -578,14 +578,14 @@ export function parseAssistantMessageV3(assistantMessage: string): AssistantMess
 					}
 				}
 
-				if (currentInvokeName === "Read") {
-					currentToolUse = {
-						type: "tool_use",
-						name: "read_file",
-						params: {},
-						partial: true,
-					}
-				}
+				// if (currentInvokeName === "Read") {
+				// 	currentToolUse = {
+				// 		type: "tool_use",
+				// 		name: "read_file",
+				// 		params: {},
+				// 		partial: true,
+				// 	}
+				// }
 
 				if (currentInvokeName === "Write") {
 					currentToolUse = {
@@ -632,14 +632,14 @@ export function parseAssistantMessageV3(assistantMessage: string): AssistantMess
 					}
 				}
 
-				if (currentInvokeName === "ListCodeDefinitionNames") {
-					currentToolUse = {
-						type: "tool_use",
-						name: "list_code_definition_names",
-						params: {},
-						partial: true,
-					}
-				}
+				// if (currentInvokeName === "ListCodeDefinitionNames") {
+				// 	currentToolUse = {
+				// 		type: "tool_use",
+				// 		name: "list_code_definition_names",
+				// 		params: {},
+				// 		partial: true,
+				// 	}
+				// }
 
 				if (currentInvokeName === "PlanModeRespond") {
 					currentToolUse = {
