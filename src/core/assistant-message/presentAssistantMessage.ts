@@ -8,14 +8,14 @@ import { defaultModeSlug, getModeBySlug } from "../../shared/modes"
 import type { ToolParamName, ToolResponse } from "../../shared/tools"
 
 import { fetchInstructionsTool } from "../tools/fetchInstructionsTool"
-import { listFilesTool } from "../tools/listFilesTool"
-import { getReadFileToolDescription, readFileTool } from "../tools/readFileTool"
+// import { listFilesTool } from "../tools/listFilesTool"
+// import { getReadFileToolDescription, readFileTool } from "../tools/readFileTool"
 import { writeToFileTool } from "../tools/writeToFileTool"
 import { applyDiffTool } from "../tools/multiApplyDiffTool"
 import { insertContentTool } from "../tools/insertContentTool"
 import { searchAndReplaceTool } from "../tools/searchAndReplaceTool"
-import { listCodeDefinitionNamesTool } from "../tools/listCodeDefinitionNamesTool"
-import { searchFilesTool } from "../tools/searchFilesTool"
+// import { listCodeDefinitionNamesTool } from "../tools/listCodeDefinitionNamesTool"
+// import { searchFilesTool } from "../tools/searchFilesTool"
 import { browserActionTool } from "../tools/browserActionTool"
 import { executeCommandTool } from "../tools/executeCommandTool"
 import { useMcpToolTool } from "../tools/useMcpToolTool"
@@ -30,7 +30,7 @@ import { checkpointSave } from "../checkpoints"
 import { formatResponse } from "../prompts/responses"
 import { validateToolUse } from "../tools/validateToolUse"
 import { Task } from "../task/Task"
-import { codebaseSearchTool } from "../tools/codebaseSearchTool"
+// import { codebaseSearchTool } from "../tools/codebaseSearchTool"
 import { experiments, EXPERIMENT_IDS } from "../../shared/experiments"
 import { applyDiffToolLegacy } from "../tools/applyDiffTool"
 
@@ -154,8 +154,8 @@ export async function presentAssistantMessage(cline: Task) {
 				switch (block.name) {
 					case "execute_command":
 						return `[${block.name} for '${block.params.command}']`
-					case "read_file":
-						return getReadFileToolDescription(block.name, block.params)
+					// case "read_file":
+					// 	return getReadFileToolDescription(block.name, block.params)
 					case "fetch_instructions":
 						return `[${block.name} for '${block.params.task}']`
 					case "write_to_file":
@@ -179,18 +179,18 @@ export async function presentAssistantMessage(cline: Task) {
 							}
 						}
 						return `[${block.name}]`
-					case "search_files":
-						return `[${block.name} for '${block.params.regex}'${
-							block.params.file_pattern ? ` in '${block.params.file_pattern}'` : ""
-						}]`
+					// case "search_files":
+					// 	return `[${block.name} for '${block.params.regex}'${
+					// 		block.params.file_pattern ? ` in '${block.params.file_pattern}'` : ""
+					// 	}]`
 					case "insert_content":
 						return `[${block.name} for '${block.params.path}']`
 					case "search_and_replace":
 						return `[${block.name} for '${block.params.path}']`
-					case "list_files":
-						return `[${block.name} for '${block.params.path}']`
-					case "list_code_definition_names":
-						return `[${block.name} for '${block.params.path}']`
+					// case "list_files":
+					// 	return `[${block.name} for '${block.params.path}']`
+					// case "list_code_definition_names":
+					// 	return `[${block.name} for '${block.params.path}']`
 					case "browser_action":
 						return `[${block.name} for '${block.params.action}']`
 					case "use_mcp_tool":
@@ -203,8 +203,8 @@ export async function presentAssistantMessage(cline: Task) {
 						return `[${block.name}]`
 					case "switch_mode":
 						return `[${block.name} to '${block.params.mode_slug}'${block.params.reason ? ` because: ${block.params.reason}` : ""}]`
-					case "codebase_search": // Add case for the new tool
-						return `[${block.name} for '${block.params.query}']`
+					// case "codebase_search": // Add case for the new tool
+					// 	return `[${block.name} for '${block.params.query}']`
 					case "new_task": {
 						const mode = block.params.mode ?? defaultModeSlug
 						const message = block.params.message ?? "(no message)"
@@ -443,32 +443,32 @@ export async function presentAssistantMessage(cline: Task) {
 				case "search_and_replace":
 					await searchAndReplaceTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
 					break
-				case "read_file":
-					await readFileTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
-
-					break
+				// case "read_file":
+				// 	await readFileTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
+				//
+				// 	break
 				case "fetch_instructions":
 					await fetchInstructionsTool(cline, block, askApproval, handleError, pushToolResult)
 					break
-				case "list_files":
-					await listFilesTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
-					break
-				case "codebase_search":
-					await codebaseSearchTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
-					break
-				case "list_code_definition_names":
-					await listCodeDefinitionNamesTool(
-						cline,
-						block,
-						askApproval,
-						handleError,
-						pushToolResult,
-						removeClosingTag,
-					)
-					break
-				case "search_files":
-					await searchFilesTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
-					break
+				// case "list_files":
+				// 	await listFilesTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
+				// 	break
+				// case "codebase_search":
+				// 	await codebaseSearchTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
+				// 	break
+				// case "list_code_definition_names":
+				// 	await listCodeDefinitionNamesTool(
+				// 		cline,
+				// 		block,
+				// 		askApproval,
+				// 		handleError,
+				// 		pushToolResult,
+				// 		removeClosingTag,
+				// 	)
+				// 	break
+				// case "search_files":
+				// 	await searchFilesTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
+				// 	break
 				case "browser_action":
 					await browserActionTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
 					break

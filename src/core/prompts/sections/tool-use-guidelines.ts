@@ -17,18 +17,9 @@ export function getToolUseGuidelinesSection(codeIndexManager?: CodeIndexManager)
 	)
 
 	// Conditional codebase search guideline
-	if (isCodebaseSearchAvailable) {
-		guidelinesList.push(
-			`${itemNumber++}. **IMPORTANT: When starting a new task or when you need to understand existing code/functionality, you MUST use the \`codebase_search\` tool FIRST before any other search tools.** This semantic search tool helps you find relevant code based on meaning rather than just keywords. Only after using codebase_search should you use other tools like search_files, list_files, or read_file for more specific exploration.`,
-		)
-		guidelinesList.push(
-			`${itemNumber++}. Choose the most appropriate tool based on the task and the tool descriptions provided. Assess if you need additional information to proceed, and which of the available tools would be most effective for gathering this information. For example using the list_files tool is more effective than running a command like \`ls\` in the terminal. It's critical that you think about each available tool and use the one that best fits the current step in the task.`,
-		)
-	} else {
-		guidelinesList.push(
-			`${itemNumber++}. Choose the most appropriate tool based on the task and the tool descriptions provided. Assess if you need additional information to proceed, and which of the available tools would be most effective for gathering this information. For example using the list_files tool is more effective than running a command like \`ls\` in the terminal. It's critical that you think about each available tool and use the one that best fits the current step in the task.`,
-		)
-	}
+	guidelinesList.push(
+		`${itemNumber++}. Choose the most appropriate tool based on the task and the tool descriptions provided. To understand the project structure or get file contents, you MUST analyze the \`<codebase>\` XML document provided in the \`<additional_prompts>\` section. This document is your single source of truth for the codebase. For other actions, it's critical that you think about each available tool and use the one that best fits the current step in the task.`,
+	)
 
 	// Remaining guidelines
 	guidelinesList.push(

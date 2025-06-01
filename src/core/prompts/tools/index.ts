@@ -27,18 +27,18 @@ import { CodeIndexManager } from "../../../services/code-index/manager"
 // Map of tool names to their description functions
 const toolDescriptionMap: Record<string, (args: ToolArgs) => string | undefined> = {
 	execute_command: (args) => getExecuteCommandDescription(args),
-	read_file: (args) => getReadFileDescription(args),
+	// read_file: (args) => getReadFileDescription(args),
 	fetch_instructions: () => getFetchInstructionsDescription(),
 	write_to_file: (args) => getWriteToFileDescription(args),
-	search_files: (args) => getSearchFilesDescription(args),
-	list_files: (args) => getListFilesDescription(args),
-	list_code_definition_names: (args) => getListCodeDefinitionNamesDescription(args),
+	// search_files: (args) => getSearchFilesDescription(args),
+	// list_files: (args) => getListFilesDescription(args),
+	// list_code_definition_names: (args) => getListCodeDefinitionNamesDescription(args),
 	browser_action: (args) => getBrowserActionDescription(args),
 	ask_followup_question: () => getAskFollowupQuestionDescription(),
 	attempt_completion: (args) => getAttemptCompletionDescription(args),
 	use_mcp_tool: (args) => getUseMcpToolDescription(args),
 	access_mcp_resource: (args) => getAccessMcpResourceDescription(args),
-	codebase_search: () => getCodebaseSearchDescription(),
+	// codebase_search: () => getCodebaseSearchDescription(),
 	switch_mode: () => getSwitchModeDescription(),
 	new_task: (args) => getNewTaskDescription(args),
 	insert_content: (args) => getInsertContentDescription(args),
@@ -51,7 +51,7 @@ export function getToolDescriptionsForMode(
 	mode: Mode,
 	cwd: string,
 	supportsComputerUse: boolean,
-	codeIndexManager?: CodeIndexManager,
+	_codeIndexManager?: CodeIndexManager,
 	diffStrategy?: DiffStrategy,
 	browserViewportSize?: string,
 	mcpHub?: McpHub,
@@ -99,13 +99,13 @@ export function getToolDescriptionsForMode(
 	// Add always available tools
 	ALWAYS_AVAILABLE_TOOLS.forEach((tool) => tools.add(tool))
 
-	// Conditionally exclude codebase_search if feature is disabled or not configured
-	if (
-		!codeIndexManager ||
-		!(codeIndexManager.isFeatureEnabled && codeIndexManager.isFeatureConfigured && codeIndexManager.isInitialized)
-	) {
-		tools.delete("codebase_search")
-	}
+	// // Conditionally exclude codebase_search if feature is disabled or not configured
+	// if (
+	// 	!codeIndexManager ||
+	// 	!(codeIndexManager.isFeatureEnabled && codeIndexManager.isFeatureConfigured && codeIndexManager.isInitialized)
+	// ) {
+	// 	tools.delete("codebase_search")
+	// }
 
 	// Map tool descriptions for allowed tools
 	const descriptions = Array.from(tools).map((toolName) => {
@@ -126,12 +126,12 @@ export function getToolDescriptionsForMode(
 // Export individual description functions for backward compatibility
 export {
 	getExecuteCommandDescription,
-	getReadFileDescription,
+	// getReadFileDescription,
 	getFetchInstructionsDescription,
 	getWriteToFileDescription,
-	getSearchFilesDescription,
-	getListFilesDescription,
-	getListCodeDefinitionNamesDescription,
+	// getSearchFilesDescription,
+	// getListFilesDescription,
+	// getListCodeDefinitionNamesDescription,
 	getBrowserActionDescription,
 	getAskFollowupQuestionDescription,
 	getAttemptCompletionDescription,
@@ -140,5 +140,5 @@ export {
 	getSwitchModeDescription,
 	getInsertContentDescription,
 	getSearchAndReplaceDescription,
-	getCodebaseSearchDescription,
+	// getCodebaseSearchDescription,
 }
