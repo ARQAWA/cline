@@ -72,6 +72,11 @@ async function generatePrompt(
 	await execa('python3', [`${cwd}/.ass/codegen.py`, cwd]);
 	const CODEBASE_XML = fs.readFileSync(path.join(cwd.toPosix(), 'codebase.xml'), 'utf8');
 
+	let modePrompt;
+	if (baseInstructions.trim() !== "") {
+		modePrompt = `Mode-specific Instructions:\n${baseInstructions.trim()}\n\n`
+	}
+
 	const basePrompt = `${roleDefinition}
 
 ${markdownFormattingSection()}
@@ -106,7 +111,7 @@ ${getSystemInfoSection(cwd)}
 
 ${getObjectiveSection(codeIndexManager, experiments)}
 
-${CODEBASE_XML}`.trim()
+${modePrompt}${CODEBASE_XML}`.trim()
 
 	fs.writeFileSync(path.join(cwd, '__prompt.txt'), basePrompt);
 	return basePrompt
