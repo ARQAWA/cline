@@ -1,11 +1,11 @@
 import * as vscode from "vscode"
 import * as os from "os"
 
-import type { ModeConfig, PromptComponent, CustomModePrompts } from "@roo-code/types"
+import {ModeConfig, PromptComponent, CustomModePrompts, isLanguage} from "@roo-code/types"
 
 import { Mode, modes, defaultModeSlug, getModeBySlug, getGroupName, getModeSelection } from "../../shared/modes"
 import { DiffStrategy } from "../../shared/tools"
-import { formatLanguage } from "../../shared/language"
+import {formatLanguage, LANGUAGES} from "../../shared/language"
 
 import { McpHub } from "../../services/mcp/McpHub"
 import { CodeIndexManager } from "../../services/code-index/manager"
@@ -72,9 +72,20 @@ async function generatePrompt(
 	await execa('python3', [`${cwd}/.ass/codegen.py`, cwd]);
 	const CODEBASE_XML = fs.readFileSync(path.join(cwd.toPosix(), 'codebase.xml'), 'utf8');
 
-	let modePrompt;
+	let modePrompt = ""
 	if (baseInstructions.trim() !== "") {
 		modePrompt = `Mode-specific Instructions:\n${baseInstructions.trim()}\n\n`
+	}
+
+	const is_architect = mode === "architect"
+	let capabilitiesPart = is_architect ? "" : getCapabilitiesSection(cwd, supportsComputerUse, mcpHub, effectiveDiffStrategy, codeIndexManager);
+	let rulesPart = is_architect ? "" : getRulesSection(cwd, supportsComputerUse, effectiveDiffStrategy, codeIndexManager);
+	let objectivePart = is_architect ? "" : getObjectiveSection(codeIndexManager, experiments)
+
+	let languagePrompt = "";
+	if (typeof language === "string") {
+		const languageName = isLanguage(language) ? LANGUAGES[language] : language;
+		languagePrompt = `Language Preference:\nYou should always speak and think in the "${languageName}" (${language}) language unless the user gives you instructions below to do otherwise.\n\n`;
 	}
 
 	const basePrompt = `${roleDefinition}
@@ -101,22 +112,21 @@ ${getToolUseGuidelinesSection(codeIndexManager)}
 
 ${mcpServersSection}
 
-${getCapabilitiesSection(cwd, supportsComputerUse, mcpHub, effectiveDiffStrategy, codeIndexManager)}
+${capabilitiesPart}
 
 ${modesSection}
 
-${getRulesSection(cwd, supportsComputerUse, effectiveDiffStrategy, codeIndexManager)}
+${rulesPart}
 
 ${getSystemInfoSection(cwd)}
 
-${getObjectiveSection(codeIndexManager, experiments)}
+${objectivePart}
 
-${modePrompt}${CODEBASE_XML}`.trim()
+${modePrompt}${languagePrompt}${CODEBASE_XML}`.trim()
 
 	fs.writeFileSync(path.join(cwd, '__prompt.txt'), basePrompt);
 	return basePrompt
 }
-
 //${await addCustomInstructions(baseInstructions, globalCustomInstructions || "", cwd, mode, { language: language ?? formatLanguage(vscode.env.language), rooIgnoreInstructions })}
 
 export const SYSTEM_PROMPT = async (
